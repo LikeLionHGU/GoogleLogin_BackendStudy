@@ -25,130 +25,73 @@
         h1 {
             color: #333;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
+        .code-box {
             margin-top: 20px;
+            padding: 15px;
+            background: #f1f1f1;
+            border-radius: 5px;
+            word-break: break-all;
+            font-size: 14px;
         }
-        th, td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        th {
-            background: #4285F4;
-            color: white;
-        }
-        .token-btn {
-            margin-top: 20px;
+        .btn {
+            margin-top: 15px;
             background-color: #4285F4;
             color: white;
             border: none;
             padding: 10px 15px;
-            font-size: 16px;
+            font-size: 14px;
             border-radius: 5px;
             cursor: pointer;
-            transition: 0.3s;
         }
-        .token-btn:hover {
+        .btn:hover {
             background-color: #357ae8;
-        }
-        #tokenDisplay {
-            margin-top: 20px;
-            color: #333;
-            word-wrap: break-word;
-            max-width: 100%;
         }
     </style>
 </head>
 <body>
+
 <div class="container">
     <h1>OAuth Login Successful</h1>
-    <table>
-        <thead>
-        <tr>
-            <th>Parameter</th>
-            <th>Value</th>
-        </tr>
-        </thead>
-        <tbody id="paramsTable">
-        </tbody>
-    </table>
-    <button class="token-btn" onclick="showAccessToken()">Access Token 확인</button>
-<!--    <button class="token-btn" onclick="showAuthorizationCode()">인가 코드 보기</button>-->
-    <div id="tokenDisplay"></div>
+
+    <p>아래 Authorization Code를 복사해서 Postman에 넣으세요.</p>
+
+    <div id="codeBox" class="code-box">
+        Loading...
+    </div>
+
+    <button class="btn" onclick="copyCode()">Copy Code</button>
+
 </div>
 
 <script>
-    let access_token = null; // 엑세스 토큰을 저장할 변수
-
-    function getQueryParams() {
+    function getAuthorizationCode() {
         const params = new URLSearchParams(window.location.search);
-        let tableContent = "";
-        params.forEach((value, key) => {
-            tableContent += `<tr><td>${key}</td><td>${value}</td></tr>`;
-        });
-        document.getElementById("paramsTable").innerHTML = tableContent;
-        return params;
+        return params.get("code");
     }
 
-    function sendTokenToServer() {
-        const params = getQueryParams();
-        const authCode = params.get("code"); // URL에서 "code" 파라미터 추출 (인가 코드)
+    function displayCode() {
+        const code = getAuthorizationCode();
+        const codeBox = document.getElementById("codeBox");
 
-        if (authCode) {
-            // POST 요청 보내기
-            fetch("/login/token/authorization", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                },
-                body: new URLSearchParams({
-                    code: authCode // 인가 코드를 요청 파라미터로 추가
-                })
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error("Network response was not ok");
-                    }
-                    return response.json(); // 서버 응답을 JSON으로 파싱
-                })
-                .then(data => {
-                    // 서버가 엑세스 토큰을 반환한다고 가정
-                    access_token = data.access_token; // 예: { "access_token": "abc123..." }
-                    console.log("Access Token received:", access_token);
-                })
-                .catch(error => {
-                    console.error("Error sending token:", error);
-                    document.getElementById("tokenDisplay").innerHTML = "토큰 요청 실패: " + error.message;
-                });
+        if (code) {
+            codeBox.innerText = code;
         } else {
-            console.error("No authorization code found in URL");
-            document.getElementById("tokenDisplay").innerHTML = "인가 코드가 URL에 없습니다.";
+            codeBox.innerText = "Authorization Code가 없습니다.";
         }
     }
 
-    function showAccessToken() {
-        const tokenDisplay = document.getElementById("tokenDisplay");
-        if (access_token) {
-            tokenDisplay.innerHTML = `Access Token: ${access_token}`;
-        } else {
-            tokenDisplay.innerHTML = "아직 엑세스 토큰을 받지 못했습니다.";
-        }
+    function copyCode() {
+        const code = getAuthorizationCode();
+        if (!code) return;
+
+        navigator.clipboard.writeText(code)
+            .then(() => alert("Code 복사 완료!"))
+            .catch(() => alert("복사 실패"));
     }
 
-    function showAuthorizationCode() {
-        const params = getQueryParams();
-        const authCode = params.get("code"); // URL에서 "code" 파라미터 추출
-
-        if (authCode) {
-            document.getElementById("tokenDisplay").innerHTML = `Authorization Code: ${authCode}`;
-        } else {
-            document.getElementById("tokenDisplay").innerHTML = "인가 코드가 URL에 없습니다.";
-        }
-    }
-
-   window.onload = sendTokenToServer; // 페이지 로드 시 서버에 요청
+    // ✅ 페이지 로드시 code만 표시 (절대 서버 요청 안함)
+    window.onload = displayCode;
 </script>
+
 </body>
 </html>
